@@ -3,52 +3,34 @@
 
 [![Build Status (Travis)](https://travis-ci.org/wavesoft/CCLib.svg?branch=master)](https://travis-ci.org/wavesoft/CCLib) [![Build Status (AppVeyor)](https://img.shields.io/appveyor/ci/wavesoft/CCLib/master.svg)](https://ci.appveyor.com/project/wavesoft/cclib) [![Join the chat at https://gitter.im/Arduino-CCLib](https://badges.gitter.im/Arduino-CCLib.svg)](https://gitter.im/Arduino-CCLib)
 
-A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
+A set of utilities to convert your Raspberry board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
 It currently supports the CC2530/40/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
 
-Keep in mind but this more than just a set of utilities! It comes with complete, reusable Arduino and Python libraries for adding CC.Debugger support to your projects!
+Keep in mind but this more than just a set of utilities! It comes with complete, reusable Python libraries for adding CC.Debugger support to your projects!
 
 ## Usage
 
 If you are just in hurry to flash your CCxxxx chip, follow this guide, however you should first check the [compatibility table](#compatibility-table) later in this document!
 
-### 1. Prepare your arduino board
-
-1. Install the `Arduino/CCLib` library [to your arduino IDE](https://www.arduino.cc/en/Guide/Libraries)
-2. Load the `CCLib_proxy` example and change the the `LED`, `CC_RST`, `CC_DC`, `CC_DD_I` and `CC_DD_O` constants to match your configuration.
-3. Flash it to your Teensy/Arduino
-4. We are going to need a voltage divider from 5V (arduino) to 3.3V (CCxxxx chip), therefore you will need to wire your arduino according to the following diagram:
+### 1. Connect your chip to raspberry GPIO pins
 
 ```
-For the DD Pin:
-
- <CC_DD_O> --[ 100k ]-- <CC_DD_I> --[ 200k ]-- <GND>
-                            |
-                           {DD}
-
-For the DC Pin:
-
- <CC_DC> --[ 100k ]-- {DC} --[ 200k ]-- <GND>
-
-For the RST Pin:
-
- <CC_RST> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
+3.3V VCC     = Pin 1
+DBG DATA     = Pin 11
+DBG CLOCK    = Pin 7
+GND          = Pin 6
+RESET        = Pin 13
 ```
-
-Where `{DD}`, `{DC}` and `{RST}` are the pins on the CCxxxx chip and `<CC_DD_O>`, `<CC_DD_I>`, `<CC_DC>`, `<CC_RST>` are the pins in your ardiuno board.
-
-In an arduino/breadboard set-up, this looks like this:
-
-<img src="https://raw.githubusercontent.com/wavesoft/CCLib/master/Schematic/arduino-wiring.png" width="550" />
 
 ### 2. Prepare your software
 
 1. You will need Python 2.7 or later installed to your system
 2. Open a terminal and change directory into the `Python` folder of this project
 3. Install required python modules by typing: `pip install -r requirements.txt`
-4. Test your set-up:
+4. Install wiring pi python bindings
+5. Test your set-up:
 ```
-~$ ./cc_info.py -p [serial port]
+~$ ./cc_info.py
 ```
 
 If you see something like this, you are ready:
@@ -85,22 +67,22 @@ The python utilities provide a straightforward interface for reading/writing to 
 
 * __cc_info.py__ : Read generic information from your CCxxxx chip. Usage exampe:
 ```
-~$ ./cc_info.py -p /dev/ttyS0
+~$ ./cc_info.py
 ```
 
 * __cc_read_flash.py__ : Read the flash memory and write it to a hex/bin file. Usage example:
 ```
-~$ ./cc_read_flash.py -p /dev/ttyS0 --out=output.hex
+~$ ./cc_read_flash.py --out=output.hex
 ```
 
 * __cc_write_flash.py__ : Write a hex/bin file to the flash memory. You can optionally specify the `--erase` parameter to firt perform a full chip-erase. Usage example:
 ```
-~$ ./cc_write_flash.py -p /dev/ttyS0 --in=output.hex --erase
+~$ ./cc_write_flash.py --in=output.hex --erase
 ```
 
 * __cc_resume.py__ : Exit from debug mode and resume chip operations. Usage example:
 ```
-~$ ./cc_resume.py -p /dev/ttyS0
+~$ ./cc_resume.py
 ```
 
 _NOTE:_ If you don't want to use the `--port` parameter with every command you can define the `CC_SERIAL` environment variable, pointing to the serial port you are using:
