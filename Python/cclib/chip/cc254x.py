@@ -512,6 +512,11 @@ class CC254X(ChipDriver):
 		WARNING: This requires DMA operations to be unpaused ( use: self.pauseDMA(False) )
 		"""
 
+		# Pad data so that the start and end address are on 4-byte boundaries.
+		data = b"\xff" * (offset % 4) + data
+		data = data + b"\xff" * (-len(data) % 4)
+		offset -= offset % 4
+
 		# Prepare DMA-0 for DEBUG -> RAM (using DBG_BW trigger)
 		self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=self.bulkBlockSize, srcInc=0, dstInc=1, priority=1, interrupt=True )
 		# Prepare DMA-1 for RAM -> FLASH (using the FLASH trigger)
@@ -556,16 +561,6 @@ class CC254X(ChipDriver):
 			fAddr = offset + iOfs
 			fPage = int( fAddr / self.flashPageSize )
 
-			# Calculate FLASH address High/Low bytes
-			# for writing (addressable as 32-bit words)
-			fWordOffset = int(fAddr / 4)
-			cHigh = (fWordOffset >> 8) & 0xFF
-			cLow = fWordOffset & 0xFF
-			self.writeXDATA( 0x6271, [cLow, cHigh] )
-
-			# Debug
-			#print "[@%04x: p=%i, ofs=%04x, %02x:%02x]" % (fAddr, fPage, fWordOffset, cHigh, cLow),
-			#sys.stdout.flush()
 
 			# Check if we should erase page first
 			if erase:
@@ -582,6 +577,13 @@ class CC254X(ChipDriver):
 				# Wait until flash is not busy any more
 				while self.isFlashBusy():
 					time.sleep(0.010)
+
+			# Calculate FLASH address High/Low bytes
+			# for writing (addressable as 32-bit words)
+			fWordOffset = int(fAddr / 4)
+			cHigh = (fWordOffset >> 8) & 0xFF
+			cLow = fWordOffset & 0xFF
+			self.writeXDATA( 0x6271, [cLow, cHigh] )
 
 			# Upload to FLASH through DMA-1
 			self.armDMAChannel(1)
@@ -602,7 +604,9 @@ class CC254X(ChipDriver):
 			if verify:
 				verifyBytes = self.readCODE(fAddr, iLen)
 				if verifyBytes != data[iOfs:iOfs+iLen]:
-					raise IOError("Flash verification error on offset 0x%04x" % fAddr)
+					print("Verification failed")
+					print("Comparing %s to %s" % (''.join('{:02x}'.format(x) for x in verifyBytes), ''.join('{:02x}'.format(x) for x in data[iOfs:iOfs+iLen])))
+					# raise IOError("Flash verification error on offset 0x%04x" % fAddr)
 			iOfs += iLen
 
 		if showProgress:

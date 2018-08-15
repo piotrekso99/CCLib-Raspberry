@@ -21,6 +21,7 @@ import time
 import glob
 import serial
 import serial.tools.list_ports
+from cclib.ccraspberry import ccraspberry
 
 # Command constants
 CMD_ENTER     = 0x01
@@ -67,31 +68,23 @@ class CCLibProxy:
 
 			# Subclass all properties
 			self.ser = parent.ser
-			self.port = parent.port
 			self.chipID = parent.chipID
 			self.debugStatus = parent.debugStatus
 			self.debugConfig = parent.debugConfig
 			self.instructionTableVersion = parent.instructionTableVersion
 
 		else:
+			# Open port
+			try:
+				self.ser = ccraspberry()
+			except:
+				raise IOError("Could not open port %s" % port)
 
-			# If we don't have a port specified perform autodetect
-			if port is None or port == 'auto':
-				self.detectPort()
-
-			else:
-				# Open port
-				try:
-					self.ser = serial.Serial(port)
-					self.port = port
-				except:
-					raise IOError("Could not open port %s" % port)
-
-				# Ping
-				try:
-					self.ping()
-				except IOError:
-					raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
+			# Ping
+			try:
+				self.ping()
+			except IOError:
+				raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
 
 			# Check if we should enter debug mode
 			if enterDebug:
@@ -104,46 +97,6 @@ class CCLibProxy:
 			self.chipID = self.getChipID()
 			self.debugStatus = self.getStatus()
 			self.debugConfig = self.readConfig()
-
-	def detectPort(self):
-		"""
-		Iterate over system COM ports in order to locate a port that the proxy
-		responds upon.
-		"""
-		print("NOTE: Performing auto-detection (use -p to specify port manually)")
-
-		# Prioritize known ports, since on linux and osx scanning
-		# weird ports will cost more
-		ports = []
-		priority_names =  ['acm', 'usb', 'ttys']
-		all_ports = list(serial.tools.list_ports.comports())
-		for name in priority_names:
-			for i in range(0, len(all_ports)):
-				if name.lower() in all_ports[i][0]:
-					ports.append(all_ports[i])
-					all_ports.pop(i)
-		ports += all_ports
-
-		# Try to ping each one
-		for port in ports:
-			try:
-				print("INFO: Checking %s" % port[0])
-				self.ser = serial.Serial(port[0])
-
-				# If ping fails, we will get an exception
-				self.sendFrame(CMD_PING)
-				self.port = port[0]
-				return
-
-			except:
-				try:
-					self.ser.close()
-				except:
-					pass
-				self.ser = None
-
-		# No port defined? Raise an exception
-		raise IOError("Could not detect a CCLib_proxy connected on any serial port")
 
 	###############################################
 	# Low-level functions
@@ -339,7 +292,8 @@ class CCLibProxy:
 			raise IOError("Unable to prepare for brust-write! (Unknown response 0x%02x)" % ans)
 
 		# Start sending data
-		self.ser.write(data)
+		for b in data:
+			self.ser.write(chr(b & 0xFF))
 		self.ser.flush()
 
 		# Handle response & update debug status

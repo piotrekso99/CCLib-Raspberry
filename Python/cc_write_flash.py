@@ -98,11 +98,11 @@ for mb in hexFile.memBlocks:
 
 	# Flash memory block
 	print(" -> 0x%04x : %i bytes " % (mb.addr + offset, mb.size))
-	try:
-		dbg.writeCODE( mb.addr + offset, mb.bytes, verify=True, showProgress=True )
-	except Exception as e:
-		print("ERROR: %s" % str(e))
-		sys.exit(3)
+	# try:
+	dbg.writeCODE( mb.addr + offset, mb.bytes, verify=True, showProgress=True )
+	# except Exception as e:
+		# print("ERROR: %s" % str(e))
+		# sys.exit(3)
 
 # Done
 print("\nCompleted")
