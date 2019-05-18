@@ -363,8 +363,8 @@ class CCHEXFile:
 					#print "0x%06x : " % bAddr, "".join( "%02x " % x for x in bytes )
 
 				# Everything else raise error
-				else:
-					raise IOError("Line %i: Unknown record type %02x" % (i, bType))
+#				else:
+#					raise IOError("Line %i: Unknown record type %02x" % (i, bType))
 
 			# Stack rest
 			self.memBlocks.append(mb)
